@@ -1,6 +1,5 @@
-import pyttsx3
 import winsound
-import time
+import pyttsx3
 
 engine = pyttsx3.init()
 
@@ -8,9 +7,11 @@ def trigger_emergency():
 
     print("🚨 EMERGENCY ALERT ACTIVATED 🚨")
 
-    for i in range(3):
-        winsound.Beep(1000, 500)
-        time.sleep(0.2)
+    for _ in range(5):
+        winsound.PlaySound(
+            "SystemExclamation",
+            winsound.SND_ALIAS
+        )
 
     engine.say(
         "Emergency. Caregiver assistance required immediately."

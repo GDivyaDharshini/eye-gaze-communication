@@ -2,17 +2,28 @@ import cv2
 import mediapipe as mp
 import time
 
-mp_face_mesh = mp.solutions.face_mesh
+# ----------------------------
+# Variables
+# ----------------------------
+
+confirmation = ""
+selected_phrase = "I Need Water"
 
 gesture_history = []
 last_direction = ""
-
-cap = cv2.VideoCapture(0)
 
 neutral_x = None
 neutral_y = None
 
 start_time = time.time()
+
+# ----------------------------
+# MediaPipe Setup
+# ----------------------------
+
+mp_face_mesh = mp.solutions.face_mesh
+
+cap = cv2.VideoCapture(0)
 
 with mp_face_mesh.FaceMesh(
     static_image_mode=False,
@@ -23,6 +34,7 @@ with mp_face_mesh.FaceMesh(
 ) as face_mesh:
 
     while True:
+
         success, frame = cap.read()
 
         if not success:
@@ -31,6 +43,7 @@ with mp_face_mesh.FaceMesh(
         frame = cv2.flip(frame, 1)
 
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
         results = face_mesh.process(rgb)
 
         if results.multi_face_landmarks:
@@ -44,8 +57,10 @@ with mp_face_mesh.FaceMesh(
             x = int(nose.x * w)
             y = int(nose.y * h)
 
+            # Draw nose point
             cv2.circle(frame, (x, y), 8, (0, 255, 0), -1)
 
+            # Show coordinates
             cv2.putText(
                 frame,
                 f"X:{x} Y:{y}",
@@ -56,7 +71,10 @@ with mp_face_mesh.FaceMesh(
                 2
             )
 
-            # Calibration for first 3 seconds
+            # ----------------------------
+            # Calibration
+            # ----------------------------
+
             if time.time() - start_time < 3:
 
                 neutral_x = x
@@ -74,28 +92,23 @@ with mp_face_mesh.FaceMesh(
 
             else:
 
-                cv2.circle(
-                    frame,
-                    (neutral_x, neutral_y),
-                    6,
-                    (255, 0, 255),
-                    -1
-                )
-
                 current_direction = ""
 
+                # LEFT / RIGHT
                 if x < neutral_x - 40:
                     current_direction = "LEFT"
 
                 elif x > neutral_x + 40:
                     current_direction = "RIGHT"
 
+                # UP / DOWN
                 elif y < neutral_y - 25:
                     current_direction = "UP"
 
                 elif y > neutral_y + 35:
                     current_direction = "DOWN"
 
+                # Show direction
                 if current_direction:
 
                     cv2.putText(
@@ -111,16 +124,21 @@ with mp_face_mesh.FaceMesh(
                     if current_direction != last_direction:
 
                         gesture_history.append(current_direction)
+
                         last_direction = current_direction
 
                         if len(gesture_history) > 10:
                             gesture_history.pop(0)
 
-                # YES = UP DOWN UP
+                # ----------------------------
+                # YES Detection
+                # ----------------------------
 
                 if len(gesture_history) >= 3:
 
                     if gesture_history[-3:] == ["UP", "DOWN", "UP"]:
+
+                        confirmation = "YES"
 
                         cv2.putText(
                             frame,
@@ -132,9 +150,13 @@ with mp_face_mesh.FaceMesh(
                             3
                         )
 
-                    # NO = LEFT RIGHT LEFT
+                    # ----------------------------
+                    # NO Detection
+                    # ----------------------------
 
-                    if gesture_history[-3:] == ["LEFT", "RIGHT", "LEFT"]:
+                    elif gesture_history[-3:] == ["LEFT", "RIGHT", "LEFT"]:
+
+                        confirmation = "NO"
 
                         cv2.putText(
                             frame,
@@ -146,17 +168,44 @@ with mp_face_mesh.FaceMesh(
                             3
                         )
 
+                # ----------------------------
+                # Display Information
+                # ----------------------------
+
+                cv2.putText(
+                    frame,
+                    f"Selected: {selected_phrase}",
+                    (20, 230),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8,
+                    (255, 255, 255),
+                    2
+                )
+
+                cv2.putText(
+                    frame,
+                    f"Confirmation: {confirmation}",
+                    (20, 270),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.8,
+                    (0, 255, 255),
+                    2
+                )
+
                 cv2.putText(
                     frame,
                     f"History: {gesture_history[-5:]}",
-                    (20, 220),
+                    (20, 310),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.6,
                     (255, 255, 255),
                     2
                 )
 
-        cv2.imshow("GazeConnect Head Gesture System", frame)
+        cv2.imshow(
+            "GazeConnect Head Gesture System",
+            frame
+        )
 
         if cv2.waitKey(1) & 0xFF == 27:
             break
