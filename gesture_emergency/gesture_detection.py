@@ -4,6 +4,9 @@ import time
 
 mp_face_mesh = mp.solutions.face_mesh
 
+gesture_history = []
+last_direction = ""
+
 cap = cv2.VideoCapture(0)
 
 neutral_x = None
@@ -53,7 +56,7 @@ with mp_face_mesh.FaceMesh(
                 2
             )
 
-            # Calibrate for first 3 seconds
+            # Calibration for first 3 seconds
             if time.time() - start_time < 3:
 
                 neutral_x = x
@@ -71,54 +74,89 @@ with mp_face_mesh.FaceMesh(
 
             else:
 
-                cv2.circle(frame, (neutral_x, neutral_y),
-                           6, (255, 0, 255), -1)
+                cv2.circle(
+                    frame,
+                    (neutral_x, neutral_y),
+                    6,
+                    (255, 0, 255),
+                    -1
+                )
+
+                current_direction = ""
 
                 if x < neutral_x - 40:
-                    cv2.putText(
-                        frame,
-                        "LEFT",
-                        (20, 80),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1,
-                        (255, 0, 0),
-                        3
-                    )
+                    current_direction = "LEFT"
 
                 elif x > neutral_x + 40:
+                    current_direction = "RIGHT"
+
+                elif y < neutral_y - 25:
+                    current_direction = "UP"
+
+                elif y > neutral_y + 35:
+                    current_direction = "DOWN"
+
+                if current_direction:
+
                     cv2.putText(
                         frame,
-                        "RIGHT",
+                        current_direction,
                         (20, 80),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         1,
-                        (255, 0, 0),
+                        (255, 255, 0),
                         3
                     )
 
-                if y < neutral_y - 30:
-                    cv2.putText(
-                        frame,
-                        "UP",
-                        (20, 120),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1,
-                        (0, 0, 255),
-                        3
-                    )
+                    if current_direction != last_direction:
 
-                elif y > neutral_y + 30:
-                    cv2.putText(
-                        frame,
-                        "DOWN",
-                        (20, 120),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1,
-                        (0, 0, 255),
-                        3
-                    )
+                        gesture_history.append(current_direction)
+                        last_direction = current_direction
 
-        cv2.imshow("GazeConnect Head Tracking", frame)
+                        if len(gesture_history) > 10:
+                            gesture_history.pop(0)
+
+                # YES = UP DOWN UP
+
+                if len(gesture_history) >= 3:
+
+                    if gesture_history[-3:] == ["UP", "DOWN", "UP"]:
+
+                        cv2.putText(
+                            frame,
+                            "YES DETECTED",
+                            (20, 160),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (0, 255, 0),
+                            3
+                        )
+
+                    # NO = LEFT RIGHT LEFT
+
+                    if gesture_history[-3:] == ["LEFT", "RIGHT", "LEFT"]:
+
+                        cv2.putText(
+                            frame,
+                            "NO DETECTED",
+                            (20, 160),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            1,
+                            (0, 0, 255),
+                            3
+                        )
+
+                cv2.putText(
+                    frame,
+                    f"History: {gesture_history[-5:]}",
+                    (20, 220),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    (255, 255, 255),
+                    2
+                )
+
+        cv2.imshow("GazeConnect Head Gesture System", frame)
 
         if cv2.waitKey(1) & 0xFF == 27:
             break
