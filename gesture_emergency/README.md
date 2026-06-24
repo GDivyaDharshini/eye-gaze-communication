@@ -1,7 +1,12 @@
-# Gesture Emergency Module
+Gesture Emergency Module
 
 Features:
-- Head Nod Detection (YES)
-- Head Shake Detection (NO)
-- Emergency Alert System
-- Caregiver Notification
+- Head direction tracking
+- YES gesture detection
+- NO gesture detection
+- Emergency alert system
+- Caregiver voice notification
+
+Outputs:
+confirmation = "YES"
+confirmation = "NO"
