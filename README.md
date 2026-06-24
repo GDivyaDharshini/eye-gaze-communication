@@ -1,0 +1,1 @@
+Affordable Eye-Controlled Communication System for Individuals with Severe Motor and Speech Disabilities.
