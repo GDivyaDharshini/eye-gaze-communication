@@ -1,0 +1,18 @@
+{
+    "hello": "Hello",
+    "water": "I need water",
+    "food": "I need food",
+    "washroom": "I need to use the washroom",
+    "help": "Please help me",
+    "thankyou": "Thank you",
+
+    "pain": "I am in pain",
+    "medicine": "I need medicine",
+    "doctor": "Please call a doctor",
+
+    "family": "Please call my family",
+    "yes": "Yes",
+    "no": "No",
+
+    "emergency": "Emergency! Please help me immediately"
+}
