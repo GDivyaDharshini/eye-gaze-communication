@@ -1,85 +1,140 @@
 import cv2
 import mediapipe as mp
+import numpy as np
 
-mp_face_mesh = mp.solutions.face_mesh
+from eye_detector import EyeDetector
+from gaze_direction import GazeTracker
+from head_movement import HeadPoseEstimator
+from calibration import Calibration
 
-face_mesh = mp_face_mesh.FaceMesh(
-    max_num_faces=1,
-    refine_landmarks=True
-)
 
-cap = cv2.VideoCapture(0)
+class GazeConnect:
 
-while True:
-    success, frame = cap.read()
+    def __init__(self):
 
-    if not success:
-        break
+        # Open webcam
+        self.cap = cv2.VideoCapture(0)
 
-    frame = cv2.flip(frame, 1)
+        if not self.cap.isOpened():
+            print("Cannot open webcam")
+            exit()
 
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = face_mesh.process(rgb)
+        # MediaPipe Face Mesh
+        self.mp_face_mesh = mp.solutions.face_mesh
 
-    direction = "CENTER"
+        self.face_mesh = self.mp_face_mesh.FaceMesh(
+            max_num_faces=1,
+            refine_landmarks=True,
+            min_detection_confidence=0.6,
+            min_tracking_confidence=0.6
+        )
 
-    if results.multi_face_landmarks:
+        # Helper classes
+        self.eye_detector = EyeDetector()
+        self.gaze_tracker = GazeTracker()
+        self.head_pose = HeadPoseEstimator()
+        self.calibration = Calibration()
 
-        h, w, _ = frame.shape
+        self.direction = "CENTER"
 
-        for face_landmarks in results.multi_face_landmarks:
+    def run(self):
 
-            # Left eye corners
-            left_corner = face_landmarks.landmark[33]
-            right_corner = face_landmarks.landmark[133]
+        while True:
 
-            # Iris center
-            iris = face_landmarks.landmark[468]
+            success, frame = self.cap.read()
 
-            # Convert to pixel coordinates
-            lx = int(left_corner.x * w)
-            rx = int(right_corner.x * w)
-            ix = int(iris.x * w)
+            if not success:
+                continue
 
-            ly = int(left_corner.y * h)
-            ry = int(right_corner.y * h)
-            iy = int(iris.y * h)
+            frame = cv2.flip(frame, 1)
 
-            # Draw points
-            cv2.circle(frame, (lx, ly), 3, (255, 0, 0), -1)
-            cv2.circle(frame, (rx, ry), 3, (255, 0, 0), -1)
-            cv2.circle(frame, (ix, iy), 5, (0, 255, 0), -1)
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Eye width
-            eye_width = rx - lx
+            results = self.face_mesh.process(rgb)
 
-            if eye_width > 0:
+            if results.multi_face_landmarks:
 
-                horizontal_ratio = (ix - lx) / eye_width
+                landmarks = results.multi_face_landmarks[0]
 
-                if horizontal_ratio < 0.35:
-                    direction = "LEFT"
+                h, w, _ = frame.shape
 
-                elif horizontal_ratio > 0.65:
-                    direction = "RIGHT"
+                # Detect eyes
+                eyes = self.eye_detector.detect(
+                    landmarks,
+                    w,
+                    h
+                )
 
-                else:
-                    direction = "CENTER"
+                # Estimate head pose
+                pitch, yaw, roll = self.head_pose.estimate(
+                    landmarks,
+                    w,
+                    h
+                )
 
-    cv2.putText(
-        frame,
-        f"Direction: {direction}",
-        (20, 50),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        (0, 0, 255),
-        2
-    )
+                # Calibrate
+                self.calibration.update(
+                    eyes,
+                    pitch,
+                    yaw
+                )
 
-    cv2.imshow("GazeConnect Eye Tracking", frame)
+                # Estimate gaze
+                self.direction = self.gaze_tracker.predict(
+                    eyes,
+                    pitch,
+                    yaw,
+                    self.calibration
+                )
 
-    if cv2.waitKey(1) & 0xFF == 27:
-        break
+                # Draw landmarks
+                self.eye_detector.draw(
+                    frame,
+                    eyes
+                )
 
-cap.release()
-cv2.destroyAllWindows()
+                cv2.putText(
+                    frame,
+                    f"Direction : {self.direction}",
+                    (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (0, 255, 0),
+                    2
+                )
+
+                cv2.putText(
+                    frame,
+                    f"Pitch : {pitch:.1f}",
+                    (20, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (255, 255, 0),
+                    2
+                )
+
+                cv2.putText(
+                    frame,
+                    f"Yaw : {yaw:.1f}",
+                    (20, 110),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (255, 255, 0),
+                    2
+                )
+
+            cv2.imshow("GazeConnect", frame)
+
+            key = cv2.waitKey(1)
+
+            if key == 27:
+                break
+
+        self.cap.release()
+        cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+
+    app = GazeConnect()
+    app.run()

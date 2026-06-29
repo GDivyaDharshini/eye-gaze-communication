@@ -1,4 +1,18 @@
-import mediapipe as mp
+import cv2
 
-print("MediaPipe version:", mp.__version__)
-print("Location:", mp.__file__)
+cap = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cap.read()
+
+    if not ret:
+        print("Cannot access camera")
+        break
+
+    cv2.imshow("Camera Test", frame)
+
+    if cv2.waitKey(1) & 0xFF == 27:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
