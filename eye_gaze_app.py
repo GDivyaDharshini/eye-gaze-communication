@@ -4,6 +4,7 @@ import time
 
 from camera_test import Camera
 from eye_tracking import EyeTracker
+from gesture_emergency.gesture_detection import HeadGestureDetector
 from speech import speak
 
 
@@ -14,7 +15,7 @@ from speech import speak
 languages = [
     "english",
     "tamil",
-    "hindi",
+    "hindi",    
     "bengali"
 ]
 
@@ -30,6 +31,7 @@ language_mode = True
 
 camera = Camera()
 tracker = EyeTracker()
+head_detector = HeadGestureDetector()
 
 
 # -------------------------
@@ -60,8 +62,6 @@ DOUBLE_BLINK_WINDOW = 1.0
 BLINK_DECISION_DELAY = 1.2
 
 blink_active = False
-
-confirm_action = False
 emergency_action = False
 
 CONFIRM_COOLDOWN = 3
@@ -69,7 +69,7 @@ last_confirm_time = 0
 
 
 print("\nEye Gaze Communication Started")
-print("Double Blink = Confirm / Speak")
+print("Head Nod = Confirm")
 print("Triple Blink = Emergency Alert")
 print("Q = Quit\n")
 
@@ -82,6 +82,7 @@ while True:
         continue
 
     direction, blink = tracker.detect(frame)
+    confirmation = head_detector.detect(frame)
 
     current_time = time.time()
 
@@ -89,7 +90,6 @@ while True:
     # Blink Detection
     # -------------------------
 
-    confirm_action = False
     emergency_action = False
 
     if (
@@ -121,10 +121,9 @@ while True:
             > BLINK_DECISION_DELAY
         ):
 
-            if blink_count == 2:
-                confirm_action = True
+        
 
-            elif blink_count >= 3:
+            if blink_count >= 3:
                 emergency_action = True
 
             blink_count = 0
@@ -198,15 +197,15 @@ while True:
 
         cv2.putText(
             frame,
-            "DOUBLE BLINK TO CONFIRM",
+            "HEAD NOD TO CONFIRM",
             (20, 160),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
             (0, 0, 255),
             2
-        )
+            )
 
-        if confirm_action:
+        if confirmation == "YES":
 
             with open(
                 f"language/{selected_language}.json",
@@ -225,12 +224,10 @@ while True:
             language_mode = False
 
             print(
-                f"Language Selected: "
-                f"{selected_language}"
+               f"Language Selected: {selected_language}"
             )
 
             last_confirm_time = time.time()
-
     # =========================
     # PHRASE MODE
     # =========================
@@ -284,7 +281,7 @@ while True:
 
         cv2.putText(
             frame,
-            "DOUBLE BLINK TO SPEAK",
+            "HEAD NOD TO SPEAK",
             (20, 140),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
@@ -302,7 +299,7 @@ while True:
             2
         )
 
-        if confirm_action:
+        if confirmation == "YES":
 
             text = phrases[selected_phrase]
 
@@ -311,6 +308,10 @@ while True:
             speak(text)
 
             last_confirm_time = time.time()
+
+        elif confirmation == "NO":
+
+            print("Cancelled")
 
         elif emergency_action:
 
