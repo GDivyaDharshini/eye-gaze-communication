@@ -1,214 +1,97 @@
 import cv2
 import mediapipe as mp
-import time
 
-# ----------------------------
-# Variables
-# ----------------------------
 
-confirmation = ""
-selected_phrase = "I Need Water"
+class HeadGestureDetector:
 
-gesture_history = []
-last_direction = ""
+    def __init__(self):
 
-neutral_x = None
-neutral_y = None
+        self.face_mesh = mp.solutions.face_mesh.FaceMesh(
+            static_image_mode=False,
+            max_num_faces=1,
+            refine_landmarks=True,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        )
 
-start_time = time.time()
+        self.neutral_x = None
+        self.neutral_y = None
 
-# ----------------------------
-# MediaPipe Setup
-# ----------------------------
+        self.gesture_history = []
+        self.last_direction = ""
 
-mp_face_mesh = mp.solutions.face_mesh
+        self.calibrated = False
+        self.frame_count = 0
 
-cap = cv2.VideoCapture(0)
-
-with mp_face_mesh.FaceMesh(
-    static_image_mode=False,
-    max_num_faces=1,
-    refine_landmarks=True,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-) as face_mesh:
-
-    while True:
-
-        success, frame = cap.read()
-
-        if not success:
-            break
-
-        frame = cv2.flip(frame, 1)
+    def detect(self, frame):
 
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        results = face_mesh.process(rgb)
+        results = self.face_mesh.process(rgb)
 
-        if results.multi_face_landmarks:
+        if not results.multi_face_landmarks:
+            return None
 
-            face_landmarks = results.multi_face_landmarks[0]
+        face = results.multi_face_landmarks[0]
 
-            nose = face_landmarks.landmark[1]
+        nose = face.landmark[1]
 
-            h, w, _ = frame.shape
+        h, w, _ = frame.shape
 
-            x = int(nose.x * w)
-            y = int(nose.y * h)
+        x = int(nose.x * w)
+        y = int(nose.y * h)
 
-            # Draw nose point
-            cv2.circle(frame, (x, y), 8, (0, 255, 0), -1)
+        # -------- Calibration --------
 
-            # Show coordinates
-            cv2.putText(
-                frame,
-                f"X:{x} Y:{y}",
-                (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (0, 255, 0),
-                2
-            )
+        if not self.calibrated:
 
-            # ----------------------------
-            # Calibration
-            # ----------------------------
+            self.frame_count += 1
 
-            if time.time() - start_time < 3:
+            self.neutral_x = x
+            self.neutral_y = y
 
-                neutral_x = x
-                neutral_y = y
+            if self.frame_count > 90:
+                self.calibrated = True
 
-                cv2.putText(
-                    frame,
-                    "LOOK STRAIGHT - CALIBRATING",
-                    (20, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
-                    (0, 255, 255),
-                    2
-                )
+            return None
 
-            else:
+        direction = None
 
-                current_direction = ""
+        if x < self.neutral_x - 40:
+            direction = "LEFT"
 
-                # LEFT / RIGHT
-                if x < neutral_x - 40:
-                    current_direction = "LEFT"
+        elif x > self.neutral_x + 40:
+            direction = "RIGHT"
 
-                elif x > neutral_x + 40:
-                    current_direction = "RIGHT"
+        elif y < self.neutral_y - 25:
+            direction = "UP"
 
-                # UP / DOWN
-                elif y < neutral_y - 25:
-                    current_direction = "UP"
+        elif y > self.neutral_y + 35:
+            direction = "DOWN"
 
-                elif y > neutral_y + 35:
-                    current_direction = "DOWN"
+        if direction:
 
-                # Show direction
-                if current_direction:
+            if direction != self.last_direction:
 
-                    cv2.putText(
-                        frame,
-                        current_direction,
-                        (20, 80),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1,
-                        (255, 255, 0),
-                        3
-                    )
+                self.gesture_history.append(direction)
 
-                    if current_direction != last_direction:
+                self.last_direction = direction
 
-                        gesture_history.append(current_direction)
+                if len(self.gesture_history) > 10:
+                    self.gesture_history.pop(0)
 
-                        last_direction = current_direction
+        if len(self.gesture_history) >= 3:
 
-                        if len(gesture_history) > 10:
-                            gesture_history.pop(0)
+            if self.gesture_history[-3:] == ["UP", "DOWN", "UP"]:
 
-                # ----------------------------
-                # YES Detection
-                # ----------------------------
+                self.gesture_history.clear()
 
-                if len(gesture_history) >= 3:
+                return "YES"
 
-                    if gesture_history[-3:] == ["UP", "DOWN", "UP"]:
+            if self.gesture_history[-3:] == ["LEFT", "RIGHT", "LEFT"]:
 
-                        confirmation = "YES"
+                self.gesture_history.clear()
 
-                        cv2.putText(
-                            frame,
-                            "YES DETECTED",
-                            (20, 160),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            1,
-                            (0, 255, 0),
-                            3
-                        )
+                return "NO"
 
-                    # ----------------------------
-                    # NO Detection
-                    # ----------------------------
-
-                    elif gesture_history[-3:] == ["LEFT", "RIGHT", "LEFT"]:
-
-                        confirmation = "NO"
-
-                        cv2.putText(
-                            frame,
-                            "NO DETECTED",
-                            (20, 160),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            1,
-                            (0, 0, 255),
-                            3
-                        )
-
-                # ----------------------------
-                # Display Information
-                # ----------------------------
-
-                cv2.putText(
-                    frame,
-                    f"Selected: {selected_phrase}",
-                    (20, 230),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
-                    (255, 255, 255),
-                    2
-                )
-
-                cv2.putText(
-                    frame,
-                    f"Confirmation: {confirmation}",
-                    (20, 270),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
-                    (0, 255, 255),
-                    2
-                )
-
-                cv2.putText(
-                    frame,
-                    f"History: {gesture_history[-5:]}",
-                    (20, 310),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    (255, 255, 255),
-                    2
-                )
-
-        cv2.imshow(
-            "GazeConnect Head Gesture System",
-            frame
-        )
-
-        if cv2.waitKey(1) & 0xFF == 27:
-            break
-
-cap.release()
-cv2.destroyAllWindows()
+        return None
