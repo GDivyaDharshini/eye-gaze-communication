@@ -1,55 +1,102 @@
-from ui.translations import translations
 import streamlit as st
-st.info("👁️ LOOK HERE")
+
+from ui.translations import translations
+from ui.dashboard_languages import dashboard_languages
+
+
+def option_card(icon, title, direction):
+
+    st.markdown(
+        f"""
+        <div class="food-card">
+            <div class="food-icon">{icon}</div>
+            <div class="food-title">{title}</div>
+            <div class="food-direction">{direction}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 def food_page():
 
-    st.header("🍔 Food")
+    lang = dashboard_languages[st.session_state.language]
+    current_direction = st.session_state.direction
 
-    top = st.columns([1,2,1])
+    st.title("🍔 " + lang["FOOD"])
+
+    # ---------------- TOP ----------------
+
+    top = st.columns([1, 2, 1])
 
     with top[1]:
-         st.markdown("""
-    <div style="
-    padding:20px;
-    border-radius:15px;
-    background:#F3EEFF;
-    text-align:center;
-    font-size:30px;
-    ">
-    🍚<br><b>Idli</b>
-    </div>
-    """, unsafe_allow_html=True)
 
-    if st.button("Select Idli"):
-        lang = st.session_state.get("language", "English")
-        st.session_state.message = translations["Idli"][lang]
+        option_card("🍛", "IDLI", "↑ Look Up")
 
-    middle = st.columns(3)
+        if st.button("Select Idli", use_container_width=True):
 
-    with middle[0]:
-        if st.button("🥞 Dosa"):
-            lang = st.session_state.get("language", "English")
-            st.session_state.message = translations["Dosa"][lang]
+            st.session_state.selected_item = "Idli"
+            st.session_state.message = translations["Idli"][st.session_state.language]
+            st.session_state.page = "confirmation"
+            st.rerun()
 
-    with middle[1]:
-        st.info("👁️ LOOK HERE")
+    st.write("")
 
-    with middle[2]:
-        if st.button("🫓 Chapati"):
-            lang = st.session_state.get("language", "English")
-            st.session_state.message = translations["Chapati"][lang]
+    # ---------------- MIDDLE ----------------
 
-    bottom = st.columns([1,2,1])
+    left, center, right = st.columns([2, 1, 2])
+
+    with left:
+
+        option_card("🥞", "DOSA", "◀ Look Left")
+
+        if st.button("Select Dosa", use_container_width=True):
+
+            st.session_state.selected_item = "Dosa"
+            st.session_state.message = translations["Dosa"][st.session_state.language]
+            st.session_state.page = "confirmation"
+            st.rerun()
+
+    with center:
+
+        st.markdown(
+            """
+            <div class="eye-center">
+                👁
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with right:
+
+        option_card("🫓", "CHAPATI", "Look Right ▶")
+
+        if st.button("Select Chapati", use_container_width=True):
+
+            st.session_state.selected_item = "Chapati"
+            st.session_state.message = translations["Chapati"][st.session_state.language]
+            st.session_state.page = "confirmation"
+            st.rerun()
+
+    st.write("")
+
+    # ---------------- BOTTOM ----------------
+
+    bottom = st.columns([1, 2, 1])
 
     with bottom[1]:
-        
-         if st.button("🍟 Snacks"):
-            lang = st.session_state.get("language", "English")
-            st.session_state.message = translations["Snacks"][lang]
+
+        option_card("🍟", "SNACKS", "↓ Look Down")
+
+        if st.button("Open Snacks", use_container_width=True):
 
             st.session_state.page = "snacks"
             st.rerun()
 
-    if st.button("⬅ Back"):
+    st.write("")
+
+    if st.button(lang["BACK"], use_container_width=True):
+
         st.session_state.page = "menu"
         st.rerun()
