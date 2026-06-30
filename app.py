@@ -1,164 +1,306 @@
 import streamlit as st
 
-from ui.menu import show_menu, page_router
-from ui.styles import load_css
-from ui.language_region import language_region_page
-from ui.dashboard_languages import dashboard_languages
-from utils.speech import speak
-
-# =================================================
-# PAGE CONFIG
-# =================================================
 st.set_page_config(
     page_title="GazeConnect",
-    page_icon="👁️",
     layout="wide"
 )
 
-load_css()
-
-# =================================================
-# SESSION STATE (MERGED)
-# =================================================
-
+# -----------------------------
+# Session State
+# -----------------------------
 if "page" not in st.session_state:
     st.session_state.page = "home"
-
-if "screen" not in st.session_state:
-    st.session_state.screen = "region"
 
 if "language" not in st.session_state:
     st.session_state.language = "English"
 
-if "message" not in st.session_state:
-    st.session_state.message = "---"
-
 if "direction" not in st.session_state:
-    st.session_state.direction = "Waiting..."
+    st.session_state.direction = "CENTER"
 
-if "region" not in st.session_state:
-    st.session_state.region = ""
+if "gesture" not in st.session_state:
+    st.session_state.gesture = "READY"
 
-if "language_selected" not in st.session_state:
-    st.session_state.language_selected = False
+if "phrase" not in st.session_state:
+    st.session_state.phrase = "Nothing Selected"
 
-if "selected_item" not in st.session_state:
-    st.session_state.selected_item = ""
+# -----------------------------
+# Styling
+# -----------------------------
 
-# =================================================
-# LANGUAGE DATA
-# =================================================
-lang = dashboard_languages.get(
-    st.session_state.language,
-    dashboard_languages["English"]
-)
+st.markdown("""
+<style>
 
-# =================================================
-# SIDEBAR
-# =================================================
-with st.sidebar:
-    st.title("⚙️ Settings")
+.main{
+    background:#F7FAFF;
+}
 
-    st.write("Current Language")
-    st.success(f"🌐 {st.session_state.language}")
+.title{
+    text-align:center;
+    font-size:42px;
+    font-weight:bold;
+    color:#005792;
+}
 
-    if st.button("🔄 Change Language"):
-        st.session_state.screen = "region"
-        st.session_state.region = ""
-        st.session_state.language_selected = False
-        st.rerun()
+.subtitle{
+    text-align:center;
+    color:gray;
+    margin-bottom:20px;
+}
 
-# =================================================
-# HEADER
-# =================================================
-left, right = st.columns([5, 1])
+div.stButton > button{
+    width:100%;
+    height:90px;
+    font-size:22px;
+    border-radius:20px;
+    font-weight:bold;
+}
 
-with left:
-    st.markdown(
-        '<div class="title">GazeConnect</div>',
-        unsafe_allow_html=True
-    )
+.block{
+    border:2px solid #E5E7EB;
+    border-radius:18px;
+    padding:15px;
+    background:white;
+}
 
-    st.markdown(
-        '<div class="subtitle">Affordable Eye-Controlled Communication System</div>',
-        unsafe_allow_html=True
-    )
-
-# =================================================
-# OUTPUT SECTION
-# =================================================
-st.markdown(f"## 🗣️ {lang['OUTPUT']}")
-
-message = st.session_state.message
-if message == "---":
-    message = lang["LOOK"]
+</style>
+""", unsafe_allow_html=True)
 
 st.markdown(
-    f"""
-    <div class="message-box">
-        💬 {message}
-    </div>
-    """,
+    '<div class="title">👁️ GazeConnect</div>',
     unsafe_allow_html=True
 )
 
-# =================================================
-# SPEAK BUTTON
-# =================================================
-if st.button("🔊 Speak", use_container_width=True):
-    if st.session_state.message != "---":
-        speak(st.session_state.message)
-
-st.divider()
-
-# =================================================
-# EYE DIRECTION TEST
-# =================================================
-st.session_state.direction = st.selectbox(
-    "👀 Test Eye Direction",
-    ["Waiting...", "UP", "LEFT", "RIGHT", "DOWN"]
+st.markdown(
+    '<div class="subtitle">Affordable Eye Controlled Communication System</div>',
+    unsafe_allow_html=True
 )
 
-direction = st.session_state.direction
+# =====================================
+# Camera + Status
+# =====================================
 
-st.markdown("### 👀 Gaze Direction")
+def camera_panel():
 
-if direction == "UP":
-    st.success("⬆️ Looking Up")
-elif direction == "LEFT":
-    st.success("⬅️ Looking Left")
-elif direction == "RIGHT":
-    st.success("➡️ Looking Right")
-elif direction == "DOWN":
-    st.success("⬇️ Looking Down")
-else:
-    st.info("👁 Waiting for Eye Movement...")
+    left, right = st.columns([2,1])
 
-# =================================================
-# MAIN FLOW
-# =================================================
-if st.session_state.screen in ["region", "language"]:
-    language_region_page()
+    with left:
 
-elif st.session_state.screen == "dashboard":
+        st.markdown("### 📷 Live Camera")
 
-    if st.session_state.page == "menu":
-        show_menu()
-    else:
-        page_router()
+        st.image(
+            "https://placehold.co/640x420?text=Live+Camera",
+            use_container_width=True
+        )
+
+    with right:
+
+        st.markdown("### Status")
+
+        st.success(f"Language : {st.session_state.language}")
+
+        st.info(f"Direction : {st.session_state.direction}")
+
+        st.success(f"Gesture : {st.session_state.gesture}")
+
+        st.warning("Selected Phrase")
+
+        st.markdown(
+            f"### {st.session_state.phrase}"
+        )
+
+# =====================================
+# HOME
+# =====================================
+
+def home_page():
+
+    top1, top2, top3 = st.columns([1,2,1])
+
+    with top2:
+
+        if st.button("🌐 LANGUAGE"):
+
+            st.session_state.page="language"
+            st.rerun()
+
+    st.write("")
+
+    left, center, right = st.columns([1.2,2,1.2])
+
+    with left:
+
+        if st.button("👨‍⚕️ HEALTH"):
+
+            st.session_state.page="health"
+            st.rerun()
+
+    with center:
+
+        camera_panel()
+
+    with right:
+
+        if st.button("🍽️ FOOD & DRINK"):
+
+            st.session_state.page="food"
+            st.rerun()
+
+    st.write("")
+    st.write("")
+
+    c1,c2,c3=st.columns([1,2,1])
+
+    with c2:
+
+        if st.button("🆘 ASSISTANCE"):
+
+            st.session_state.page="assist"
+            st.rerun()
+# =====================================
+# HEALTH PAGE
+# =====================================
+
+def health_page():
+
+    st.header("👨‍⚕️ Health")
+
+    camera_panel()
+
+    st.divider()
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+        if st.button("💊 Medicine"):
+            st.session_state.phrase = "I need my medicine"
+
+        if st.button("🤕 Pain"):
+            st.session_state.phrase = "I am in pain"
+
+    with c2:
+        if st.button("🚨 Emergency"):
+            st.session_state.phrase = "Emergency! Please help!"
+
+        if st.button("👨‍⚕️ Call Doctor"):
+            st.session_state.phrase = "Please call the doctor"
+
+
+# =====================================
+# FOOD PAGE
+# =====================================
+
+def food_page():
+
+    st.header("🍽️ Food & Drink")
+
+    camera_panel()
+
+    st.divider()
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+
+        if st.button("🍛 Food"):
+            st.session_state.phrase = "I am hungry"
+
+        if st.button("🥤 Drinks"):
+            st.session_state.phrase = "I need water"
+
+    with c2:
+
+        if st.button("🍎 Fruits"):
+            st.session_state.phrase = "I want fruits"
+
+        if st.button("🍪 Snacks"):
+            st.session_state.phrase = "I want snacks"
+
+
+# =====================================
+# ASSISTANCE PAGE
+# =====================================
+
+def assist_page():
+
+    st.header("🆘 Assistance")
+
+    camera_panel()
+
+    st.divider()
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+
+        if st.button("🚽 Washroom"):
+            st.session_state.phrase = "I need the washroom"
+
+        if st.button("😴 Sleep"):
+            st.session_state.phrase = "I want to sleep"
+
+    with c2:
+
+        if st.button("🚶 Outing"):
+            st.session_state.phrase = "Please take me outside"
+
+        if st.button("🍽️ Hungry"):
+            st.session_state.phrase = "I am hungry"
+
+
+# =====================================
+# LANGUAGE PAGE
+# =====================================
+
+def language_page():
+
+    st.header("🌐 Language")
+
+    camera_panel()
+
+    st.divider()
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+
+        if st.button("English"):
+            st.session_state.language = "English"
+
+        if st.button("தமிழ்"):
+            st.session_state.language = "Tamil"
+
+    with c2:
+
+        if st.button("हिन्दी"):
+            st.session_state.language = "Hindi"
+
+        if st.button("বাংলা"):
+            st.session_state.language = "Bengali"
+
+
+# =====================================
+# ROUTER
+# =====================================
+
+page = st.session_state.page
+
+if page == "home":
+    home_page()
+
+elif page == "health":
+    health_page()
+
+elif page == "food":
+    food_page()
+
+elif page == "assist":
+    assist_page()
+
+elif page == "language":
+    language_page()
 
 st.divider()
 
-# =================================================
-# HEAD GESTURE STATUS
-# =================================================
-col1, col2, col3 = st.columns([1, 2, 1])
-
-with col1:
-    st.success(f" {lang['YES']}")
-
-with col2:
-    st.info(f"👤 {lang['HEAD']} : {lang['WAITING']}")
-
-with col3:
-    st.error(f" {lang['NO']}")
+st.caption(
+    "Developed using MediaPipe • OpenCV • Streamlit • gTTS"
+)
