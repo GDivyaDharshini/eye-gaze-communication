@@ -1,40 +1,103 @@
 import streamlit as st
 
+from ui.translations import translations
+from ui.dashboard_languages import dashboard_languages
+
+
+def option_card(icon, title, direction):
+
+    st.markdown(
+        f"""
+        <div class="food-card">
+            <div class="food-icon">{icon}</div>
+            <div class="food-title">{title}</div>
+            <div class="food-direction">{direction}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 def snacks_page():
 
-    st.header("🍟 Snacks")
+    lang = dashboard_languages[st.session_state.language]
 
-    st.warning("👀 Look in a direction to select")
+    st.title("🍟 " + lang["SNACKS"])
 
-    # UP
-    top = st.columns([1,2,1])
+    # ---------------- TOP ----------------
+
+    top = st.columns([1, 2, 1])
 
     with top[1]:
-        if st.button("🍪 Cookies"):
-            st.session_state.message = "I need Cookies"
 
-    # LEFT - CENTER - RIGHT
-    middle = st.columns(3)
+        option_card("🍪", "BISCUIT", "↑ Look Up")
 
-    with middle[0]:
-        if st.button("🥨 Biscuits"):
-            st.session_state.message = "I need Biscuits"
+        if st.button("Select Biscuit", use_container_width=True):
 
-    with middle[1]:
-        st.info("👁️ LOOK HERE")
+            st.session_state.selected_item = "Biscuit"
+            st.session_state.message = translations["Biscuit"][st.session_state.language]
+            st.session_state.page = "confirmation"
+            st.rerun()
 
-    with middle[2]:
-        if st.button("🍟 Chips"):
-            st.session_state.message = "I need Chips"
+    st.write("")
 
-    # DOWN
-    bottom = st.columns([1,2,1])
+    # ---------------- MIDDLE ----------------
+
+    left, center, right = st.columns([2, 1, 2])
+
+    with left:
+
+        option_card("🍿", "POPCORN", "◀ Look Left")
+
+        if st.button("Select Popcorn", use_container_width=True):
+
+            st.session_state.selected_item = "Popcorn"
+            st.session_state.message = translations["Popcorn"][st.session_state.language]
+            st.session_state.page = "confirmation"
+            st.rerun()
+
+    with center:
+
+        st.markdown(
+            """
+            <div class="eye-center">
+                👁
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with right:
+
+        option_card("🍫", "CHOCOLATE", "Look Right ▶")
+
+        if st.button("Select Chocolate", use_container_width=True):
+
+            st.session_state.selected_item = "Chocolate"
+            st.session_state.message = translations["Chocolate"][st.session_state.language]
+            st.session_state.page = "confirmation"
+            st.rerun()
+
+    st.write("")
+
+    # ---------------- BOTTOM ----------------
+
+    bottom = st.columns([1, 2, 1])
 
     with bottom[1]:
-        if st.button("🍰 Cake"):
-            st.session_state.message = "I need Cake"
 
-    # Back Button
-    if st.button("⬅ Back"):
+        option_card("🍰", "CAKE", "↓ Look Down")
+
+        if st.button("Select Cake", use_container_width=True):
+
+            st.session_state.selected_item = "Cake"
+            st.session_state.message = translations["Cake"][st.session_state.language]
+            st.session_state.page = "confirmation"
+            st.rerun()
+
+    st.write("")
+
+    if st.button(lang["BACK"], use_container_width=True):
+
         st.session_state.page = "food"
         st.rerun()
